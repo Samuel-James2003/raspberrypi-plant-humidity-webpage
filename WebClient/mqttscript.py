@@ -32,4 +32,4 @@ def get_status():
     return jsonify(mqtt_status)
 
 if __name__ == "__main__":
-    app.run(host="192.168.1.20", port=5000)
+    app.run(host=os.getenv("IPAddress"), port=5000)
