@@ -17,7 +17,7 @@
 
         // Clear the previous status cards before updating
         container.innerHTML = "";
-
+        
         // Loop through each device and create a separate card for each MAC address
         for (const macAddress in data) {
           const statusData = data[macAddress];
@@ -68,6 +68,13 @@
           timestampElement.classList.add("text-muted", "text-end", "small");
           timestampElement.innerText = `Last updated: ${latestEntry.timestamp}`;
           cardBody.appendChild(timestampElement);
+
+          const link = document.createElement("a");
+          link.href = `/detail/${macAddress}`;
+          link.innerText = "View Details";
+          link.classList.add("btn", "btn-link");
+          cardBody.appendChild(link);
+
 
           // Append the card to the container
           container.appendChild(card);

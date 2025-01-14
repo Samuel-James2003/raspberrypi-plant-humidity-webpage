@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, send_file
+from flask import Flask, render_template
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 import os
@@ -80,6 +80,16 @@ def get_status():
     with open(log_file, 'r') as file:
         file_contents = file.read()
     return file_contents
+
+@app.route("/detail/<mac_address>")
+def detail(mac_address):
+    with open(log_file, "r") as file:
+        log_data = json.load(file)
+    
+    # Get data for the specified MAC address
+    data = log_data.get(mac_address, [])
+    return render_template("detail.html", mac_address=mac_address, data=data)
+
 
 if __name__ == "__main__":
     app.run(host=os.getenv("LocalIP"), port=5000)
