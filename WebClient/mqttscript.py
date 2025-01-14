@@ -38,9 +38,9 @@ def clean_log():
 # Callback for MQTT messages
 def on_message(client, userdata, message):
     global mqtt_status
-    mqtt_status["topic"] = message.topic  # Store the topic
-    mqtt_status["status"] = message.payload.decode()  # Store the payload
-    mqtt_status["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Store the timestamp
+    mqtt_status["topic"] = message.topic  
+    mqtt_status["status"] = message.payload.decode()
+    mqtt_status["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
 
     # Extract MAC address from topic
     mac_address = message.topic.split("/")[-1]
@@ -67,7 +67,7 @@ def on_message(client, userdata, message):
 client = mqtt.Client()
 client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
 client.on_message = on_message
-client.connect(os.getenv("IPAddress"), 1883, 60)
+client.connect(os.getenv("MQTTServer"), 1883, 60)
 client.subscribe("home/ESP32/Humidity/#")
 client.loop_start()
 
@@ -82,4 +82,4 @@ def get_status():
     return file_contents
 
 if __name__ == "__main__":
-    app.run(host=os.getenv("IPAddress"), port=5000)
+    app.run(host=os.getenv("LocalIP"), port=5000)
