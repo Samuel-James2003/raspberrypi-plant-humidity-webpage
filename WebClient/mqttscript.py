@@ -1,16 +1,39 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_file
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 import os
+import json
 
 app = Flask(__name__)
+
 # MQTT status
 mqtt_status = {"topic": "Unknown", "status": "Unknown", "timestamp": "Unknown"}
-log_file = "log.csv"
+log_file = "log.json"
 
-if not os.path.exists(log_file):
-    with open(log_file, "w") as file:
-        file.write("MAC,Message,Timestamp\n")  # Add headers for clarity
+# Ensure log file exists
+def initialize_log_file():
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            json.dump({}, f)
+
+initialize_log_file()
+
+# Clean up old entries from the log
+def clean_log():
+    with open(log_file, "r") as f:
+        log_data = json.load(f)
+
+    cutoff_time = datetime.now() - timedelta(hours=72)
+    
+    for mac, entries in list(log_data.items()):
+        log_data[mac] = [entry for entry in entries if datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") > cutoff_time]
+
+        # Remove MAC if no entries remain
+        if not log_data[mac]:
+            del log_data[mac]
+
+    with open(log_file, "w") as f:
+        json.dump(log_data, f, indent=4)
 
 # Callback for MQTT messages
 def on_message(client, userdata, message):
@@ -19,42 +42,26 @@ def on_message(client, userdata, message):
     mqtt_status["status"] = message.payload.decode()  # Store the payload
     mqtt_status["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Store the timestamp
 
-    # Extract MAC address from the topic
+    # Extract MAC address from topic
     mac_address = message.topic.split("/")[-1]
 
-    # Append message to log file
-    with open(log_file, "a") as file:
-        file.write(f"{mac_address},{mqtt_status['status']},{mqtt_status['timestamp']}\n")
+    # Update log
+    with open(log_file, "r") as f:
+        log_data = json.load(f)
 
-    # Clean up log file for entries older than 72 hours
-    clean_log_file()
-# Callback for MQTT messages
-def on_message(client, userdata, message):
-    global mqtt_status
-    mqtt_status["topic"] = message.topic  # Store the topic
-    mqtt_status["status"] = message.payload.decode()  # Store the payload
-    mqtt_status["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Store the timestamp
-    
-def clean_log_file():
-    cutoff_time = datetime.now() - timedelta(hours=72)
-    lines_to_keep = []
+    if mac_address not in log_data:
+        log_data[mac_address] = []
 
-    with open(log_file, "r") as file:
-        lines = file.readlines()
+    log_data[mac_address].append({
+        "payload": message.payload.decode(),
+        "timestamp": mqtt_status["timestamp"]
+    })
 
-    # Keep header and recent entries
-    lines_to_keep.append(lines[0])  # Header
-    for line in lines[1:]:
-        try:
-            mac, message, timestamp = line.strip().split(",")
-            entry_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-            if entry_time >= cutoff_time:
-                lines_to_keep.append(line)
-        except ValueError:
-            continue  # Ignore malformed lines
+    with open(log_file, "w") as f:
+        json.dump(log_data, f, indent=4)
 
-    with open(log_file, "w") as file:
-        file.writelines(lines_to_keep)
+    # Clean up old entries
+    clean_log()
 
 # MQTT client setup
 client = mqtt.Client()
@@ -70,7 +77,9 @@ def index():
 
 @app.route("/status")
 def get_status():
-    return jsonify(mqtt_status)
+    with open(log_file, 'r') as file:
+        file_contents = file.read()
+    return file_contents
 
 if __name__ == "__main__":
     app.run(host=os.getenv("IPAddress"), port=5000)

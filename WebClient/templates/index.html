@@ -13,63 +13,78 @@
       async function fetchStatus() {
         const response = await fetch("/status");
         const data = await response.json();
-        const statusElement = document.getElementById("status");
-        const macAddressElement = document.getElementById("mac-address");
-        const timestampElement = document.getElementById("timestamp");
+        const container = document.getElementById("status-container");
 
-        // Convert raw value (0-1680) to inverted percentage
-        const rawValue = parseInt(data.status);
-        const percentage = Math.min(
-          Math.max(100 - (rawValue / 1680) * 100, 0),
-          100
-        );
-        console.log(`Inverted Percentage: ${percentage}`);
+        // Clear the previous status cards before updating
+        container.innerHTML = "";
 
-        // Determine status text and class
-        let statusText, statusClass;
-        if (percentage >= 75) {
-          statusText = "Very Wet";
-          statusClass = "text-success";
-        } else if (percentage >= 50) {
-          statusText = "Wet";
-          statusClass = "text-primary";
-        } else if (percentage >= 25) {
-          statusText = "Dry";
-          statusClass = "text-warning";
-        } else {
-          statusText = "Very Dry";
-          statusClass = "text-danger";
+        // Loop through each device and create a separate card for each MAC address
+        for (const macAddress in data) {
+          const statusData = data[macAddress];
+          const latestEntry = statusData[statusData.length - 1];
+          const rawValue = parseInt(latestEntry.payload);
+          const percentage = Math.min(
+            Math.max(100 - (rawValue / 1680) * 100, 0),
+            100
+          );
+
+          // Determine status text and class
+          let statusText, statusClass;
+          if (percentage >= 87) {
+            statusText = "Very Wet";
+            statusClass = "text-success";
+          } else if (percentage >= 75) {
+            statusText = "Wet";
+            statusClass = "text-primary";
+          } else if (percentage >= 62) {
+            statusText = "Dry";
+            statusClass = "text-warning";
+          } else {
+            statusText = "Very Dry";
+            statusClass = "text-danger";
+          }
+
+          // Create the card for this MAC address
+          const card = document.createElement("div");
+          card.classList.add("card", "mx-auto", "mb-3");
+          card.style.maxWidth = "500px";
+
+          const cardBody = document.createElement("div");
+          cardBody.classList.add("card-body", "text-center");
+
+          card.appendChild(cardBody);
+
+          const macAddressElement = document.createElement("p");
+          macAddressElement.classList.add("text-muted");
+          macAddressElement.innerText = `Device MAC: ${macAddress}`;
+          cardBody.appendChild(macAddressElement);
+
+          const statusElement = document.createElement("p");
+          statusElement.classList.add("fs-4", statusClass);
+          statusElement.innerText = `${statusText} (${percentage.toFixed(1)}%)`;
+          cardBody.appendChild(statusElement);
+
+          const timestampElement = document.createElement("p");
+          timestampElement.classList.add("text-muted", "text-end", "small");
+          timestampElement.innerText = `Last updated: ${latestEntry.timestamp}`;
+          cardBody.appendChild(timestampElement);
+
+          // Append the card to the container
+          container.appendChild(card);
         }
+      }
 
-        // Get the MAC address from the topic (last part of the topic)
-        const macAddress = data.topic.split("/").pop(); // Extract MAC address from topic
+      setInterval(fetchStatus, 5000); // Poll every 5 seconds
+    </script>
+  </head>
+  <body onload="fetchStatus()">
+    <div class="container py-5">
+      <h1 class="text-center mb-4">Plant Humidity Monitor</h1>
 
-// Update the MAC address, status, and timestamp
-macAddressElement.innerText = `Device MAC: ${macAddress}`;
-statusElement.className = ""; // Remove all previous classes
-statusElement.classList.add("fs-4", statusClass);
-statusElement.innerText = `${statusText} (${percentage.toFixed(1)}%)`;
-timestampElement.innerText = `Last updated: ${data.timestamp}`; // Update timestamp
-}
-
-setInterval(fetchStatus, 1000); // Poll every second
-</script>
-</head>
-<body onload="fetchStatus()">
-<div class="container py-5">
-<h1 class="text-center mb-4">Plant Humidity Monitor</h1>
-
-<!-- Bootstrap Card for displaying status and MAC address -->
-<div class="card mx-auto" style="max-width: 500px">
-<div class="card-body text-center">
-  <p class="fs-4">Current Status:</p>
-  <p id="status" class="fs-4 text-secondary">Loading...</p>
-  <p id="mac-address" class="text-muted">Device MAC: Loading...</p>
-  <p id="timestamp" class="text-muted text-end small">Last updated: Loading...</p>
-</div>
-</div>
-</div>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+      <!-- Container for dynamically generated status cards -->
+      <div id="status-container"></div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>
