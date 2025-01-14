@@ -69,11 +69,11 @@
           timestampElement.innerText = `Last updated: ${latestEntry.timestamp}`;
           cardBody.appendChild(timestampElement);
 
-          const link = document.createElement("a");
-          link.href = `/detail/${macAddress}`;
-          link.innerText = "View Details";
-          link.classList.add("btn", "btn-link");
-          cardBody.appendChild(link);
+            const button = document.createElement("a");
+            button.href = `/detail/${macAddress}`;
+            button.innerText = "View Details";
+            button.classList.add("btn", "btn-primary");
+            cardBody.appendChild(button);
 
           // Append the card to the container
           container.appendChild(card);
