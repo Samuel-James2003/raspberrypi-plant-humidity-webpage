@@ -23,7 +23,7 @@
 
     <script>
       // Parse data passed from the server
-      const data = JSON.parse("{{ data|tojson|safe }}");
+      const data = JSON.parse('{{ data|tojson|safe }}');
 
       // Simplify timestamps (remove month, year, and seconds)
       const labels = data.map((entry) => {
