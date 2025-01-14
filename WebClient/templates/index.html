@@ -17,7 +17,7 @@
 
         // Clear the previous status cards before updating
         container.innerHTML = "";
-        
+
         // Loop through each device and create a separate card for each MAC address
         for (const macAddress in data) {
           const statusData = data[macAddress];
@@ -74,7 +74,6 @@
           link.innerText = "View Details";
           link.classList.add("btn", "btn-link");
           cardBody.appendChild(link);
-
 
           // Append the card to the container
           container.appendChild(card);

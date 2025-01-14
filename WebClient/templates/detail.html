@@ -15,25 +15,31 @@
   <body>
     <div class="container py-5">
       <h1 class="text-center mb-4">Detailed View: {{ mac_address }}</h1>
-      <canvas id="humidityChart" style="max-width: 100%; height: 300px;"></canvas>
+      <canvas
+        id="humidityChart"
+        style="max-width: 100%; height: 300px"
+      ></canvas>
     </div>
-  
+
     <script>
       // Parse data passed from the server
-      const data = JSON.parse('{{ data|tojson|safe }}');
-  
+      const data = JSON.parse("{{ data|tojson|safe }}");
+
       // Simplify timestamps (remove month, year, and seconds)
-      const labels = data.map(entry => {
+      const labels = data.map((entry) => {
         const date = new Date(entry.timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       });
-  
+
       // Calculate humidity values as percentages
-      const values = data.map(entry => {
+      const values = data.map((entry) => {
         const rawValue = parseInt(entry.payload);
         return Math.min(Math.max(100 - (rawValue / 1680) * 100, 0), 100);
       });
-  
+
       // Configure the chart
       const ctx = document.getElementById("humidityChart").getContext("2d");
       new Chart(ctx, {
