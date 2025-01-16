@@ -18,22 +18,29 @@ def initialize_log_file():
 
 initialize_log_file()
 
-# Clean up old entries from the log
 def clean_log():
-    with open(log_file, "r") as f:
-        log_data = json.load(f)
-
-    cutoff_time = datetime.now() - timedelta(hours=72)
+    try:
+        # Load the JSON data from the file
+        with open("log.json", "r") as file:
+            data = json.load(file)
+        
+        # Define the cutoff time
+        cutoff_time = datetime.now() - timedelta(days=3)
+        
+        # Convert the timestamps and filter out older entries
+        for key, entries in data.items():
+            data[key] = [
+                entry for entry in entries 
+                if datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") > cutoff_time
+            ]
+        
+        # Write the cleaned data back to the file
+        with open("log.json", "w") as file:
+            json.dump(data, file, indent=4)
     
-    for mac, entries in list(log_data.items()):
-        log_data[mac] = [entry for entry in entries if datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") > cutoff_time]
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-        # Remove MAC if no entries remain
-        if not log_data[mac]:
-            del log_data[mac]
-
-    with open(log_file, "w") as f:
-        json.dump(log_data, f, indent=4)
 
 # Callback for MQTT messages
 def on_message(client, userdata, message):
@@ -84,8 +91,7 @@ def get_status():
 @app.route("/detail/<mac_address>")
 def detail(mac_address):
     with open(log_file, "r") as file:
-        log_data = json.load(file)
-    
+        log_data = json.load(file)   
     # Get data for the specified MAC address
     data = log_data.get(mac_address, [])
     return render_template("detail.html", mac_address=mac_address, data=data)
