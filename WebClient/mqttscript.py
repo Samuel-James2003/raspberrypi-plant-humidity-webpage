@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template , redirect, redirect, url_for
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 import os
@@ -106,6 +106,10 @@ def delete(mac_address):
         json.dump(log_data, file, indent=4)
     return render_template("index.html")
 
+# Custom 404 handler
+@app.errorhandler(404)
+def page_not_found(e):
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host=os.getenv("LocalIP"), port=5000)
