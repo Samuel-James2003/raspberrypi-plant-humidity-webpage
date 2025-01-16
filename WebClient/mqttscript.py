@@ -104,8 +104,7 @@ def delete(mac_address):
     del log_data[mac_address]
     with open(log_file, "w") as file:
         json.dump(log_data, file, indent=4)
-    return render_template("index.html")
-
+    return redirect(url_for("index"))
 # Custom 404 handler
 @app.errorhandler(404)
 def page_not_found(e):
