@@ -96,6 +96,16 @@ def detail(mac_address):
     data = log_data.get(mac_address, [])
     return render_template("detail.html", mac_address=mac_address, data=data)
 
+@app.route("/delete/<mac_address>")
+def delete(mac_address):
+    with open(log_file, "r") as file:
+        log_data = json.load(file)
+    # Delete the specified MAC address
+    del log_data[mac_address]
+    with open(log_file, "w") as file:
+        json.dump(log_data, file, indent=4)
+    return render_template("index.html")
+
 
 if __name__ == "__main__":
     app.run(host=os.getenv("LocalIP"), port=5000)
