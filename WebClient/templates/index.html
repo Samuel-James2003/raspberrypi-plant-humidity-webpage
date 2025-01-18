@@ -20,9 +20,8 @@
 
         // Loop through each device and create a separate card for each MAC address
         for (const macAddress in data) {
-          const statusData = data[macAddress];
-          const latestEntry = statusData[statusData.length - 1];
-          const rawValue = parseInt(latestEntry.payload);
+          const device = data[macAddress]; 
+          const rawValue = parseInt(device.payload);
           const percentage = Math.min(
             Math.max(100 - (rawValue / 1680) * 100, 0),
             100
@@ -66,7 +65,7 @@
 
           const timestampElement = document.createElement("p");
           timestampElement.classList.add("text-muted", "text-end", "small");
-          timestampElement.innerText = `Last updated: ${latestEntry.timestamp}`;
+          timestampElement.innerText = `Last updated: ${device.timestamp}`;
           cardBody.appendChild(timestampElement);
 
           const button = document.createElement("a");
