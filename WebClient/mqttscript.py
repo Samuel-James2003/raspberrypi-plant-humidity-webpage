@@ -32,7 +32,7 @@ def clean_log():
         for response in data["responses"]:
             response["messages"] = [
                 message for message in response["messages"]
-                if datetime.strptime(message["TimeStamp"], "%Y-%m-%d %H:%M:%S") > cutoff_time
+                if datetime.strptime(message["timestamp"], "%Y-%m-%d %H:%M:%S") > cutoff_time
             ]
 
         # Write the cleaned data back to the file
@@ -115,8 +115,9 @@ def detail(mac_address):
     # Find the response entry for the specified MAC address
     response = next((r for r in log_data["responses"] if r["MACAddress"] == mac_address), None)
     data = response["messages"] if response else []
+    familiar_name = response["FamiliarName"] if response else ""
 
-    return render_template("detail.html", mac_address=mac_address, data=data)
+    return render_template("detail.html", mac_address=mac_address, data=data, familiar_name=familiar_name)
 
 @app.route("/delete/<mac_address>")
 def delete(mac_address):

@@ -11,23 +11,73 @@
     />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
   </head>
   <body>
     <div class="button-area">
-      <a href="/" class="btn btn-primary" style="position: absolute; top: 10px; left: 10px; font-size:20px;"><i class="bi bi-arrow-left"></i></a>
+      <a
+        href="/"
+        class="btn btn-primary"
+        style="position: absolute; top: 10px; left: 10px; font-size: 20px"
+        ><i class="bi bi-arrow-left"></i
+      ></a>
     </div>
     <div class="container py-5" id="status-container">
-      <h1 class="text-center mb-4">Detailed View: {{ mac_address }}</h1>
+      <h1 class="text-center mb-4">
+        Detailed View: {{ mac_address }} <br />
+        {{ familiar_name }}
+      </h1>
       <canvas
         id="humidityChart"
         style="max-width: 100%; max-height: 300pt"
       ></canvas>
       <div id="delete-button">
-        <a class="btn btn-danger" href="/delete/{{ mac_address }}">Delete Data</a>
-      </div>
+        <a class="btn btn-danger" 
+        href="#" 
+        data-href="/delete/{{ mac_address }}"
+        data-bs-toggle="modal"
+        data-bs-target="#confirm-delete">
+        Delete Data
+      </a>
     </div>
 
+    </div>
+    <div
+      class="modal fade"
+      id="confirm-delete"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="myModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto;">
+              Confirm Delete
+            </h4>
+            </div>
+
+          <div class="modal-body">
+            <p>
+              You are about to delete one track, this procedure is irreversible.
+            </p>
+            <p>Do you want to proceed?</p>
+            <p class="debug-url"></p>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <a class="btn btn-danger btn-ok">Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
@@ -61,13 +111,13 @@
       // Calculate time required to reach 50%
       const timeTo50Percent = (50 - lastValue) / rateOfChange; // milliseconds
       const estimatedTime = new Date(lastTime.getTime() + timeTo50Percent);
-      
-    // Display the estimated time to reach 50% in a Bootstrap alert below the canvas
-    const alertDiv = document.createElement("div");
-    alertDiv.className = "alert alert-info mt-4";
-    alertDiv.role = "alert";
-    alertDiv.innerHTML = `<strong>Estimated time till next watering:</strong> ${estimatedTime.toLocaleString()}`;
-    document.querySelector(".container").appendChild(alertDiv);
+
+      // Display the estimated time to reach 50% in a Bootstrap alert below the canvas
+      const alertDiv = document.createElement("div");
+      alertDiv.className = "alert alert-info mt-4";
+      alertDiv.role = "alert";
+      alertDiv.innerHTML = `<strong>Estimated time till next watering:</strong> ${estimatedTime.toLocaleString()}`;
+      document.querySelector(".container").appendChild(alertDiv);
 
       // Configure the chart
       const ctx = document.getElementById("humidityChart").getContext("2d");
@@ -108,7 +158,20 @@
           },
         },
       });
-      
+      document
+        .getElementById("confirm-delete")
+        .addEventListener("show.bs.modal", function (e) {
+          const modal = this;
+          const button = e.relatedTarget; // The button that triggered the modal
+          const href = button.getAttribute("data-href"); // Get the data-href attribute value
+
+          modal.querySelector(".btn-ok").setAttribute("href", href);
+
+          const debugUrlElement = document.querySelector(".debug-url");
+          if (debugUrlElement) {
+            debugUrlElement.innerHTML = `Delete URL: <strong>${href}</strong>`;
+          }
+        });
     </script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
