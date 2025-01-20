@@ -1,4 +1,4 @@
-from flask import Flask, render_template , redirect, redirect, url_for
+from flask import Flask, render_template , redirect, redirect, url_for, request
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 import os
@@ -93,6 +93,25 @@ client.loop_start()
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/change-name/<mac_address>", methods=["POST"])
+def new_name(mac_address):
+    name = request.get_json()["new_name"]
+    if not name:
+        return "New name not provided", 400
+
+    with open(log_file, "r") as file:
+        log_data = json.load(file)
+
+    for response in log_data["responses"]:
+        if response["MACAddress"] == mac_address:
+            response["FamiliarName"] = name
+            break
+    else:
+        return "MAC address not found", 404
+
+    with open(log_file, "w") as file:
+        json.dump(log_data, file, indent=4)
 
 @app.route("/status")
 def get_status():

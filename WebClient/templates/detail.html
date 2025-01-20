@@ -35,15 +35,28 @@
         style="max-width: 100%; max-height: 300pt"
       ></canvas>
       <div id="delete-button">
-        <a class="btn btn-danger" 
-        href="#" 
-        data-href="/delete/{{ mac_address }}"
-        data-bs-toggle="modal"
-        data-bs-target="#confirm-delete">
-        Delete Data
-      </a>
-    </div>
-
+        <a
+          class="btn btn-danger"
+          href="#"
+          data-href="/delete/{{ mac_address }}"
+          data-bs-toggle="modal"
+          data-bs-target="#confirm-delete"
+        >
+          Delete Data
+        </a>
+      </div>
+      <br />
+      <div id="change-name-button">
+        <a
+          class="btn btn-secondary"
+          href="#"
+          data-href="/change-name/{{ mac_address }}"
+          data-bs-toggle="modal"
+          data-bs-target="#confirm-name-change"
+        >
+          Change Name
+        </a>
+      </div>
     </div>
     <div
       class="modal fade"
@@ -55,22 +68,27 @@
     >
       <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto;">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto">
               Confirm Delete
             </h4>
-            </div>
+          </div>
 
           <div class="modal-body">
             <p>
-              You are about to delete one track, this procedure is irreversible.
+              You are about to delete the logs related to {{mac_address}}, this
+              procedure is irreversible.
             </p>
             <p>Do you want to proceed?</p>
             <p class="debug-url"></p>
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-bs-dismiss="modal">
+            <button
+              type="button"
+              class="btn btn-default"
+              data-bs-dismiss="modal"
+            >
               Cancel
             </button>
             <a class="btn btn-danger btn-ok">Delete</a>
@@ -78,7 +96,74 @@
         </div>
       </div>
     </div>
+
+    <div
+      class="modal fade"
+      id="confirm-name-change"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="myModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto">
+              Confirm name change
+            </h4>
+          </div>
+
+          <div class="modal-body">
+            <p>
+              Please enter the new name for the device with MAC address
+              {{mac_address}}.
+            </p>
+            <label for="familiar_name">New name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="familiar_name"
+              aria-describedby="familiar_help"
+              placeholder="Enter name"
+            />
+            <small id="familiar_help" class="form-text text-muted"
+              >This will be used to make it easier to tell which device is
+              who</small
+            >
+            <p class="debug-url"></p>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-default"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-secondary btn-ok" onclick="postNewName()">Update</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
+       async function postNewName() {
+        const new_name  = document.getElementById("familiar_name").value;
+        const macAddress = "{{ mac_address }}";
+        const response = await fetch(`/change-name/${macAddress}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ new_name: new_name }),
+        });
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to update name");
+        }
+       }       
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
 
