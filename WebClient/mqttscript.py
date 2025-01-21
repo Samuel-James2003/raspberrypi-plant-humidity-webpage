@@ -96,9 +96,10 @@ def index():
 
 @app.route("/change-name/<mac_address>", methods=["POST"])
 def new_name(mac_address):
-    name = request.get_json()["new_name"]
-    if not name:
-        return "New name not provided", 400
+    if request.get_json()["new_name"]:
+        name = request.get_json()["new_name"]
+    else:
+        name = ""
 
     with open(log_file, "r") as file:
         log_data = json.load(file)
@@ -112,6 +113,7 @@ def new_name(mac_address):
 
     with open(log_file, "w") as file:
         json.dump(log_data, file, indent=4)
+    return "Success", 200
 
 @app.route("/status")
 def get_status():
