@@ -42,6 +42,7 @@ def clean_log():
     except Exception as e:
         print(f"An error occurred during log cleaning: {e}")
 
+
 # Callback for MQTT messages
 def on_message(client, userdata, message):
     try:
@@ -81,6 +82,7 @@ def on_message(client, userdata, message):
     finally:
         # Clean up old entries
         clean_log()
+
         
 # MQTT client setup
 client = mqtt.Client()

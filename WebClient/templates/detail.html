@@ -141,15 +141,17 @@
             >
               Cancel
             </button>
-            <a class="btn btn-secondary btn-ok" onclick="postNewName()">Update</a>
+            <a class="btn btn-secondary btn-ok" onclick="postNewName()"
+              >Update</a
+            >
           </div>
         </div>
       </div>
     </div>
 
     <script>
-       async function postNewName() {
-        const new_name  = document.getElementById("familiar_name").value;
+      async function postNewName() {
+        const new_name = document.getElementById("familiar_name").value;
         const macAddress = "{{ mac_address }}";
         const response = await fetch(`/change-name/${macAddress}`, {
           method: "POST",
@@ -163,7 +165,7 @@
         } else {
           alert("Failed to update name");
         }
-       }       
+      }
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
 
@@ -183,25 +185,46 @@
         return Math.min(Math.max(100 - (rawValue / 1680) * 100, 0), 100);
       });
       // Estimate time to reach 50%
+
       const lastIndex = values.length - 1;
-      const firstIndex = 0;
-      const lastValue = values[lastIndex]; // Current percentage
+      let firstIndex = 0; // Start with default first index
+
+      // Find the last occurrence of 100% (watering event)
+      for (let i = lastIndex; i >= 0; i--) {
+        if (values[i] === 100) {
+          firstIndex = i;
+          break;
+        }
+      }
+
+      const lastValue = values[lastIndex];
       const firstValue = values[firstIndex];
-      const lastTime = new Date(data[lastIndex].timestamp); // Current timestamp
+      const lastTime = new Date(data[lastIndex].timestamp);
       const firstTime = new Date(data[firstIndex].timestamp);
 
-      // Calculate rate of change (percentage per millisecond)
-      const rateOfChange = (lastValue - firstValue) / (lastTime - firstTime); // %/ms
-
-      // Calculate time required to reach 50%
-      const timeTo50Percent = (50 - lastValue) / rateOfChange; // milliseconds
-      const estimatedTime = new Date(lastTime.getTime() + timeTo50Percent);
-
-      // Display the estimated time to reach 50% in a Bootstrap alert below the canvas
       const alertDiv = document.createElement("div");
       alertDiv.className = "alert alert-info mt-4";
       alertDiv.role = "alert";
-      alertDiv.innerHTML = `<strong>Estimated time till next watering:</strong> ${estimatedTime.toLocaleString()}`;
+
+      // Handle special cases
+      if (lastValue === 100) {
+        alertDiv.innerHTML =
+          "<strong>Plant recently watered. Estimation not available yet.</strong>";
+      } else if (firstIndex === lastIndex) {
+        alertDiv.innerHTML =
+          "<strong>Not enough data after watering to estimate.</strong>";
+      } else {
+        const rateOfChange = (lastValue - firstValue) / (lastTime - firstTime);
+
+        if (isNaN(rateOfChange) || !isFinite(rateOfChange)) {
+          alertDiv.innerHTML =
+            "<strong>Estimation unavailable due to invalid data.</strong>";
+        } else {
+          const timeTo50Percent = (50 - lastValue) / rateOfChange;
+          const estimatedTime = new Date(lastTime.getTime() + timeTo50Percent);
+          alertDiv.innerHTML = `<strong>Estimated time till next watering:</strong> ${estimatedTime.toLocaleString()}`;
+        }
+      }
       document.querySelector(".container").appendChild(alertDiv);
 
       // Configure the chart
