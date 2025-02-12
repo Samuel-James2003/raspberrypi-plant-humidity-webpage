@@ -17,7 +17,7 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         userID = update.effective_chat.id
     else:
         userID = update.effective_user.id
-    mac_address = update.message.text.replace("/plantstatus", "").strip()
+    mac_address = update.message.text.replace("@LousPlantHumidityBot","").replace("/plantstatus", "").strip()
     data = json.loads(get_status())
     try:
         message = "📡 *Sensor Data Update* 📡\n\n"
