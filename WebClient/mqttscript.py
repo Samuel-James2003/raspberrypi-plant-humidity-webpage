@@ -1,9 +1,14 @@
 from flask import Flask, render_template , redirect, redirect, url_for, request
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
 import os
+import asyncio
 import json
+import threading
 
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 app = Flask(__name__)
 
 # MQTT status
@@ -42,6 +47,57 @@ def clean_log():
     except Exception as e:
         print(f"An error occurred during log cleaning: {e}")
 
+# Function to handle the /start command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    welcome_message = f"Hello, {user.first_name}! Welcome to Lou's plant bot. 😊\nUse the command /plantstatus to see the plant humidity add [Mac Address] to see a specific humidity"
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=welcome_message)
+
+async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    userID = update.effective_user.id
+    mac_address = update.message.text.replace("/plantstatus", "").strip()
+    data = json.loads(get_status())
+    try:
+        message = "📡 *Sensor Data Update* 📡\n\n"
+        if len(mac_address) > 0: 
+            details = data[mac_address]
+            message += f"🔹 *MAC Address:* `{mac_address}`\n"
+            if details :
+                humidity_percentage = 100 - (float(details['payload']) / 1680) * 100
+                message += f"💦 *Current Humidity:* {humidity_percentage:.2f}%\n"
+                message += f"⏳ *Last update:* {details['timestamp']}\n"
+                battery = details['batterylevel'] if details['batterylevel'] else None
+                if battery:
+                    message += f"🔋 *Battery Level:* {battery}\n"
+                message += "➖➖➖➖➖➖➖➖➖➖\n"
+        else:
+            for mac, details in data.items():
+                message += f"🔹 *MAC Address:* `{mac}`\n"
+                if details :
+                    humidity_percentage = 100 - (float(details['payload']) / 1680) * 100
+                    message += f"💦 *Current Humidity:* {humidity_percentage:.2f}%\n"
+                    message += f"⏳ *Last update:* {details['timestamp']}\n"
+                    battery = details['batterylevel'] if details['batterylevel'] else None
+                    if battery:
+                        message += f"🔋 *Battery Level:* {battery}\n"
+                    message += "➖➖➖➖➖➖➖➖➖➖\n"
+                else:
+                    message += f"🤷‍♂️ No data available\n"
+    except Exception as e:
+        message = "Invalid Mac Address"
+    await context.bot.send_message(chat_id=userID, text=message, parse_mode="Markdown")    
+    return
+
+  
+def get_device_details(mac_address):
+    with open(log_file, "r") as file:
+        log_data = json.load(file)
+
+    # Find the response entry for the specified MAC address
+    response = next((response_entry for response_entry in log_data["responses"] if response_entry["MACAddress"].lower() == mac_address), None)
+    data = response["messages"] if response else []
+    familiar_name = response["FamiliarName"] if response else ""
+    return data, familiar_name
 
 # Callback for MQTT messages
 def on_message(client, userdata, message):
@@ -130,15 +186,11 @@ def get_status():
 
     return json.dumps(status_data, indent=4)
 
+
 @app.route("/detail/<mac_address>")
 def detail(mac_address):
-    with open(log_file, "r") as file:
-        log_data = json.load(file)
 
-    # Find the response entry for the specified MAC address
-    response = next((r for r in log_data["responses"] if r["MACAddress"] == mac_address), None)
-    data = response["messages"] if response else []
-    familiar_name = response["FamiliarName"] if response else ""
+    data, familiar_name = get_device_details(mac_address)
 
     return render_template("detail.html", mac_address=mac_address, data=data, familiar_name=familiar_name)
 
@@ -163,4 +215,26 @@ def page_not_found(e):
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
+    # Create the application with your bot's token
+    telegram_bot_application = Application.builder().token(BOT_TOKEN).build()
+
+    # Add a CommandHandler for the /start command
+    telegram_bot_application.add_handler(CommandHandler("start", start))
+    
+    # Add a CommandHandler for the /plantStatus command
+    telegram_bot_application.add_handler(CommandHandler("plantstatus", plantStatus))
+
+
+    # Run the bot in a separate thread
+    def run_telegram_bot():
+        print("Telegram bot is running...")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        telegram_bot_application.run_polling()
+    
+    bot_thread = threading.Thread(target=run_telegram_bot)
+    bot_thread.start()
+
+    # Run the Flask app
+    print("Flask app is running...")
     app.run(host=os.getenv("LocalIP"), port=5000)
