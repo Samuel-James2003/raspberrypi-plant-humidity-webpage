@@ -47,7 +47,7 @@ def get_device_details(mac_address):
         log_data = json.load(file)
 
     # Find the response entry for the specified MAC address
-    response = next((response_entry for response_entry in log_data["responses"] if response_entry["MACAddress"].lower() == mac_address), None)
+    response = next((response_entry for response_entry in log_data["responses"] if response_entry["MACAddress"] == mac_address), None)
     data = response["messages"] if response else []
     familiar_name = response["FamiliarName"] if response else ""
     return data, familiar_name
