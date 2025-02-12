@@ -13,7 +13,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=welcome_message)
 
 async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    userID = update.effective_user.id
+    if update.effective_chat.type in ['group', 'supergroup']:
+        userID = update.effective_chat.id
+    else:
+        userID = update.effective_user.id
     mac_address = update.message.text.replace("/plantstatus", "").strip()
     data = json.loads(get_status())
     try:
@@ -28,7 +31,6 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 battery = details['batterylevel'] if details['batterylevel'] else None
                 if battery:
                     message += f"🔋 *Battery Level:* {battery}\n"
-                message += "➖➖➖➖➖➖➖➖➖➖\n"
         else:
             for mac, details in data.items():
                 message += f"🔹 *MAC Address:* `{mac}`\n"
