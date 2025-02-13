@@ -142,9 +142,7 @@ def get_status():
 
 @app.route("/detail/<mac_address>")
 def detail(mac_address):
-
     data, familiar_name = get_device_details(mac_address)
-
     return render_template("detail.html", mac_address=mac_address, data=data, familiar_name=familiar_name)
 
 @app.route("/delete/<mac_address>")
