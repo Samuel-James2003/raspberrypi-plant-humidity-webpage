@@ -97,7 +97,7 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = json.loads(get_status())
     try:
         message = "📡 *Sensor Data Update* 📡\n\n"
-        if len(mac_address) > 0 or len(data.items()) == 1: 
+        if len(mac_address) > 0: 
             details = data[mac_address]
             message += f"🔹 *MAC Address:* `{mac_address}`\n"
             if details :
@@ -119,7 +119,8 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     battery = details['batterylevel'] if details['batterylevel'] else None
                     if battery:
                         message += f"🔋 *Battery Level:* {battery}\n"
-                    message += "➖➖➖➖➖➖➖➖➖➖\n"
+                    if mac != list(data.keys())[-1]:
+                        message += "➖➖➖➖➖➖➖➖➖➖\n"
                 else:
                     message += f"🤷‍♂️ No data available\n"
     except Exception as e:
