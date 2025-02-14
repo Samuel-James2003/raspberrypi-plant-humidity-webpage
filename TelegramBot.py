@@ -22,12 +22,9 @@ def on_message(client, userdata, message):
 
 def send_update(mac_address):
     for chat in GetSubscribers():
-        try:
-            bot = Bot(token=BOT_TOKEN)
-            message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
-            asyncio.run(bot.send_message(chat_id=chat, text=message, parse_mode="Markdown"))
-        except Exception as e:
-            print(f"An error occurred while sending message to {chat}: {e}")
+        bot = Bot(token=BOT_TOKEN)
+        message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
+        asyncio.run(bot.send_message(chat_id=chat, text=message, parse_mode="Markdown"))
 
 
 client = mqtt.Client()
