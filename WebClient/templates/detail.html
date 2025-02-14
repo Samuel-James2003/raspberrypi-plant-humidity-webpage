@@ -150,6 +150,7 @@
     </div>
 
     <script>
+      const TOTAL_RANGE = 3100 - 1220;
       async function postNewName() {
         const new_name = document.getElementById("familiar_name").value;
         const macAddress = "{{ mac_address }}";
@@ -168,7 +169,6 @@
       }
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
-
       const labels = data.map((entry) => {
         const date = new Date(entry.timestamp);
         return date.toLocaleTimeString([], {
@@ -181,8 +181,8 @@
 
       // Calculate humidity values as percentages
       const values = data.map((entry) => {
-        const rawValue = parseInt(entry.payload);
-        return Math.min(Math.max(100 - (rawValue / 1680) * 100, 0), 100);
+        const rawValue = Math.max(parseInt(entry.payload), 0);
+        return Math.min(Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0), 100);
       });
       // Estimate time to reach 50%
 

@@ -10,6 +10,7 @@
       rel="stylesheet"
     />
     <script>
+      const TOTAL_RANGE = 3100 - 1220;
       async function fetchStatus() {
         const response = await fetch("/status");
         const data = await response.json();
@@ -21,9 +22,9 @@
         // Loop through each device and create a separate card for each MAC address
         for (const macAddress in data) {
           const device = data[macAddress]; 
-          const rawValue = parseInt(device.payload);
+          const rawValue = Math.max(parseInt(device.payload), 0);
           const percentage = Math.min(
-            Math.max(100 - (rawValue / 1680) * 100, 0),
+            Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0),
             100
           );
 

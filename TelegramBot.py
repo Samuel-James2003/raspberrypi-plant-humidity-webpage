@@ -4,7 +4,7 @@ import paho.mqtt.client as mqtt
 import os
 import json
 
-
+TOTAL_RANGE = 3100 - 1220
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 log_file = "log.json"
 # Function to handle the /start command
@@ -85,6 +85,9 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         RemoveSubscribers(userID)
         await context.bot.send_message(chat_id=userID, text="You have been unsubscribed from updates. Use the /start command to subscribe again")
 
+def constrain(value, min_value, max_value):
+    return max(min_value, min(value, max_value))
+
 async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ['group', 'supergroup']:
         userID = update.effective_chat.id
@@ -98,7 +101,8 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
             details = data[mac_address]
             message += f"🔹 *MAC Address:* `{mac_address}`\n"
             if details :
-                humidity_percentage = 100 - (float(details['payload']) / 1680) * 100
+                cappedSoilValue = constrain(float(details['payload']), 0, TOTAL_RANGE)
+                humidity_percentage = 100 - (cappedSoilValue / TOTAL_RANGE) * 100
                 message += f"💦 *Current Humidity:* {humidity_percentage:.2f}%\n"
                 message += f"⏳ *Last update:* {details['timestamp']}\n"
                 battery = details['batterylevel'] if details['batterylevel'] else None
@@ -108,7 +112,8 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for mac, details in data.items():
                 message += f"🔹 *MAC Address:* `{mac}`\n"
                 if details :
-                    humidity_percentage = 100 - (float(details['payload']) / 1680) * 100
+                    cappedSoilValue = constrain(float(details['payload']), 0, TOTAL_RANGE)
+                    humidity_percentage = 100 - (cappedSoilValue / TOTAL_RANGE) * 100
                     message += f"💦 *Current Humidity:* {humidity_percentage:.2f}%\n"
                     message += f"⏳ *Last update:* {details['timestamp']}\n"
                     battery = details['batterylevel'] if details['batterylevel'] else None
