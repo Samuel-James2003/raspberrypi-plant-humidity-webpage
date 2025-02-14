@@ -1,6 +1,5 @@
 from telegram import Update, Bot
 import asyncio
-import threading
 from telegram.ext import Application, CommandHandler, ContextTypes
 import paho.mqtt.client as mqtt
 import os
@@ -26,6 +25,14 @@ def send_update(mac_address):
         bot = Bot(token=BOT_TOKEN)
         message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
         asyncio.run(bot.send_message(chat_id=chat, text=message, parse_mode="Markdown"))
+
+
+client = mqtt.Client()
+client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
+client.on_message = on_message
+client.connect(os.getenv("MQTTServer"), 1883, 60)
+client.subscribe("home/ESP32/Humidity/#")
+client.loop_start()
 
 # Function to handle the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -158,25 +165,10 @@ def get_status():
 
     return json.dumps(status_data, indent=4)
 
-def run_telegram_bot():
-    telegram_bot_application.run_polling()
-
 if __name__ == "__main__":
-    client = mqtt.Client()
-    client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
-    client.on_message = on_message
-    client.connect(os.getenv("MQTTServer"), 1883, 60)
-    client.subscribe("home/ESP32/Humidity/#")
-    client.loop_start()
-    
-    def run_telegram_bot():
-        telegram_bot_application.run_polling()
-
-# Start Telegram bot in a separate thread
-    
     # Create the application with your bot's token
     telegram_bot_application = Application.builder().token(BOT_TOKEN).build()
-
+    
     # Add a CommandHandler for the /start command
     telegram_bot_application.add_handler(CommandHandler("start", start))
     
@@ -185,6 +177,5 @@ if __name__ == "__main__":
     
     telegram_bot_application.add_handler(CommandHandler("stop", stop))
     
-    telegram_thread = threading.Thread(target=run_telegram_bot, daemon=True)
-    telegram_thread.start()
+    telegram_bot_application.run_polling()
 
