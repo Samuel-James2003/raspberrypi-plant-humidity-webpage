@@ -10,6 +10,7 @@
       rel="stylesheet"
     />
     <script>
+      const TOTAL_RANGE = 3100 - 1220;
       async function fetchStatus() {
         const response = await fetch("/status");
         const data = await response.json();
@@ -20,11 +21,10 @@
 
         // Loop through each device and create a separate card for each MAC address
         for (const macAddress in data) {
-          const statusData = data[macAddress];
-          const latestEntry = statusData[statusData.length - 1];
-          const rawValue = parseInt(latestEntry.payload);
+          const device = data[macAddress]; 
+          const rawValue = Math.max(parseInt(device.payload), 0);
           const percentage = Math.min(
-            Math.max(100 - (rawValue / 1680) * 100, 0),
+            Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0),
             100
           );
 
@@ -66,14 +66,14 @@
 
           const timestampElement = document.createElement("p");
           timestampElement.classList.add("text-muted", "text-end", "small");
-          timestampElement.innerText = `Last updated: ${latestEntry.timestamp}`;
+          timestampElement.innerText = `Last updated: ${device.timestamp}`;
           cardBody.appendChild(timestampElement);
 
-            const button = document.createElement("a");
-            button.href = `/detail/${macAddress}`;
-            button.innerText = "View Details";
-            button.classList.add("btn", "btn-primary");
-            cardBody.appendChild(button);
+          const button = document.createElement("a");
+          button.href = `/detail/${macAddress}`;
+          button.innerText = "View Details";
+          button.classList.add("btn", "btn-primary");
+          cardBody.appendChild(button);
 
           // Append the card to the container
           container.appendChild(card);

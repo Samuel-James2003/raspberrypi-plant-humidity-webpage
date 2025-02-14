@@ -11,20 +11,164 @@
     />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
   </head>
   <body>
-    <div class="container py-5">
-      <h1 class="text-center mb-4">Detailed View: {{ mac_address }}</h1>
+    <div class="button-area">
+      <a
+        href="/"
+        class="btn btn-primary"
+        style="position: absolute; top: 10px; left: 10px; font-size: 20px"
+        ><i class="bi bi-arrow-left"></i
+      ></a>
+    </div>
+    <div class="container py-5" id="status-container">
+      <h1 class="text-center mb-4">
+        Detailed View: {{ mac_address }} <br />
+        {{ familiar_name }}
+      </h1>
       <canvas
         id="humidityChart"
         style="max-width: 100%; max-height: 300pt"
       ></canvas>
+      <div id="delete-button">
+        <a
+          class="btn btn-danger"
+          href="#"
+          data-href="/delete/{{ mac_address }}"
+          data-bs-toggle="modal"
+          data-bs-target="#confirm-delete"
+        >
+          Delete Data
+        </a>
+      </div>
+      <br />
+      <div id="change-name-button">
+        <a
+          class="btn btn-secondary"
+          href="#"
+          data-href="/change-name/{{ mac_address }}"
+          data-bs-toggle="modal"
+          data-bs-target="#confirm-name-change"
+        >
+          Change Name
+        </a>
+      </div>
+    </div>
+    <div
+      class="modal fade"
+      id="confirm-delete"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="myModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto">
+              Confirm Delete
+            </h4>
+          </div>
+
+          <div class="modal-body">
+            <p>
+              You are about to delete the logs related to {{mac_address}}, this
+              procedure is irreversible.
+            </p>
+            <p>Do you want to proceed?</p>
+            <p class="debug-url"></p>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-default"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-danger btn-ok">Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="confirm-name-change"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="myModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title" id="myModalLabel" style="margin: 0 auto">
+              Confirm name change
+            </h4>
+          </div>
+
+          <div class="modal-body">
+            <p>
+              Please enter the new name for the device with MAC address
+              {{mac_address}}.
+            </p>
+            <label for="familiar_name">New name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="familiar_name"
+              aria-describedby="familiar_help"
+              placeholder="Enter name"
+            />
+            <small id="familiar_help" class="form-text text-muted"
+              >This will be used to make it easier to tell which device is
+              who</small
+            >
+            <p class="debug-url"></p>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-default"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <a class="btn btn-secondary btn-ok" onclick="postNewName()"
+              >Update</a
+            >
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
+      const TOTAL_RANGE = 3100 - 1220;
+      async function postNewName() {
+        const new_name = document.getElementById("familiar_name").value;
+        const macAddress = "{{ mac_address }}";
+        const response = await fetch(`/change-name/${macAddress}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ new_name: new_name }),
+        });
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to update name");
+        }
+      }
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
-
       const labels = data.map((entry) => {
         const date = new Date(entry.timestamp);
         return date.toLocaleTimeString([], {
@@ -37,28 +181,51 @@
 
       // Calculate humidity values as percentages
       const values = data.map((entry) => {
-        const rawValue = parseInt(entry.payload);
-        return Math.min(Math.max(100 - (rawValue / 1680) * 100, 0), 100);
+        const rawValue = Math.max(parseInt(entry.payload), 0);
+        return Math.min(Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0), 100);
       });
       // Estimate time to reach 50%
+
       const lastIndex = values.length - 1;
-      const firstIndex = 0;
-      const lastValue = values[lastIndex]; // Current percentage
+      let firstIndex = 0; // Start with default first index
+
+      // Find the last occurrence of 100% (watering event)
+      for (let i = lastIndex; i >= 0; i--) {
+        if (values[i] === 100) {
+          firstIndex = i;
+          break;
+        }
+      }
+
+      const lastValue = values[lastIndex];
       const firstValue = values[firstIndex];
-      const lastTime = new Date(data[lastIndex].timestamp); // Current timestamp
+      const lastTime = new Date(data[lastIndex].timestamp);
       const firstTime = new Date(data[firstIndex].timestamp);
 
-      // Calculate rate of change (percentage per millisecond)
-      const rateOfChange = (lastValue - firstValue) / (lastTime - firstTime); // %/ms
+      const alertDiv = document.createElement("div");
+      alertDiv.className = "alert alert-info mt-4";
+      alertDiv.role = "alert";
 
-      // Calculate time required to reach 50%
-      const timeTo50Percent = (50 - lastValue) / rateOfChange; // milliseconds
-      const estimatedTime = new Date(lastTime.getTime() + timeTo50Percent);
-      
-    // Display the estimated time to reach 50% in a paragraph below the canvas
-    const paragraph = document.createElement("p");
-    paragraph.textContent = `Estimated time to reach 50% humidity: ${estimatedTime.toLocaleString()}`;
-    document.querySelector(".container").appendChild(paragraph);
+      // Handle special cases
+      if (lastValue === 100) {
+        alertDiv.innerHTML =
+          "<strong>Plant recently watered. Estimation not available yet.</strong>";
+      } else if (firstIndex === lastIndex) {
+        alertDiv.innerHTML =
+          "<strong>Not enough data after watering to estimate.</strong>";
+      } else {
+        const rateOfChange = (lastValue - firstValue) / (lastTime - firstTime);
+
+        if (isNaN(rateOfChange) || !isFinite(rateOfChange)) {
+          alertDiv.innerHTML =
+            "<strong>Estimation unavailable due to invalid data.</strong>";
+        } else {
+          const timeTo50Percent = (50 - lastValue) / rateOfChange;
+          const estimatedTime = new Date(lastTime.getTime() + timeTo50Percent);
+          alertDiv.innerHTML = `<strong>Estimated time till next watering:</strong> ${estimatedTime.toLocaleString()}`;
+        }
+      }
+      document.querySelector(".container").appendChild(alertDiv);
 
       // Configure the chart
       const ctx = document.getElementById("humidityChart").getContext("2d");
@@ -99,6 +266,20 @@
           },
         },
       });
+      document
+        .getElementById("confirm-delete")
+        .addEventListener("show.bs.modal", function (e) {
+          const modal = this;
+          const button = e.relatedTarget; // The button that triggered the modal
+          const href = button.getAttribute("data-href"); // Get the data-href attribute value
+
+          modal.querySelector(".btn-ok").setAttribute("href", href);
+
+          const debugUrlElement = document.querySelector(".debug-url");
+          if (debugUrlElement) {
+            debugUrlElement.innerHTML = `Delete URL: <strong>${href}</strong>`;
+          }
+        });
     </script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
