@@ -1,4 +1,5 @@
 from telegram import Update, Bot
+import asyncio
 from telegram.ext import Application, CommandHandler, ContextTypes
 import paho.mqtt.client as mqtt
 import os
@@ -7,6 +8,34 @@ import json
 TOTAL_RANGE = 3100 - 1220
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 log_file = "log.json"
+
+def on_message(client, userdata, message):
+    try:
+        # Decode the MQTT message payload
+        payload = message.payload.decode()
+        mac_address = message.topic.split("/")[-1]
+        if int(payload) > 900:
+            send_update(mac_address)
+    except Exception as e:
+        print(f"An error occurred on message: {e}")
+
+def send_update(mac_address):
+    for chat in GetSubscribers():
+        try:
+            bot = Bot(token=BOT_TOKEN)
+            message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
+            asyncio.run(bot.send_message(chat_id=chat, text=message, parse_mode="Markdown"))
+        except Exception as e:
+            print(f"An error occurred while sending message to {chat}: {e}")
+
+
+client = mqtt.Client()
+client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
+client.on_message = on_message
+client.connect(os.getenv("MQTTServer"), 1883, 60)
+client.subscribe("home/ESP32/Humidity/#")
+client.loop_start()
+
 # Function to handle the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_message = f"Welcome to Lou's plant bot."
@@ -97,7 +126,7 @@ async def plantStatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = json.loads(get_status())
     try:
         message = "📡 *Sensor Data Update* 📡\n\n"
-        if len(mac_address) > 0: 
+        if len(mac_address) > 0 or len(data.items()) == 1: 
             details = data[mac_address]
             message += f"🔹 *MAC Address:* `{mac_address}`\n"
             if details :
@@ -138,33 +167,7 @@ def get_status():
 
     return json.dumps(status_data, indent=4)
 
-async def on_message(client, userdata, message):
-    try:
-        # Decode the MQTT message payload
-        payload = message.payload.decode()
-        mac_address = message.topic.split("/")[-1]
-        if int(payload) > 900:
-            await send_update(mac_address)
-    except Exception as e:
-        print(f"An error occurred on message: {e}")
-
-async def send_update(mac_address):
-    for chat in GetSubscribers():
-        try:
-            bot = Bot(token=BOT_TOKEN)
-            message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
-            await bot.send_message(chat_id=chat, text=message, parse_mode="Markdown")
-        except Exception as e:
-            print(f"An error occurred while sending message to {chat}: {e}")
-
 if __name__ == "__main__":
-    client = mqtt.Client()
-    client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
-    client.on_message = on_message
-    client.connect(os.getenv("MQTTServer"), 1883, 60)
-    client.subscribe("home/ESP32/Humidity/#")
-    client.loop_start()
-
     # Create the application with your bot's token
     telegram_bot_application = Application.builder().token(BOT_TOKEN).build()
 
@@ -175,6 +178,6 @@ if __name__ == "__main__":
     telegram_bot_application.add_handler(CommandHandler("plantstatus", plantStatus))
     
     telegram_bot_application.add_handler(CommandHandler("stop", stop))
-   
+    
     telegram_bot_application.run_polling()
 
