@@ -17,7 +17,8 @@ def on_message(client, userdata, message):
         if int(payload) > 900:
             send_update(mac_address)
     except Exception as e:
-        print(f"An error occurred on message: {e}")
+        with open("log.txt", "a") as log_file:
+            log_file.write(f"An error occurred on message: {e}\n")
 
 def send_update(mac_address):
     for chat in GetSubscribers():
