@@ -1,38 +1,11 @@
-from telegram import Update, Bot
-import asyncio
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-import paho.mqtt.client as mqtt
 import os
 import json
 
 TOTAL_RANGE = 3100 - 1220
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 log_file = "log.json"
-
-def on_message(client, userdata, message):
-    try:
-        # Decode the MQTT message payload
-        payload = message.payload.decode()
-        mac_address = message.topic.split("/")[-1]
-        if int(payload) > 900:
-            send_update(mac_address)
-    except Exception as e:
-        with open("log.txt", "a") as log_file:
-            log_file.write(f"An error occurred on message: {e}\n")
-
-def send_update(mac_address):
-    for chat in GetSubscribers():
-        bot = Bot(token=BOT_TOKEN)
-        message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
-        asyncio.run(bot.send_message(chat_id=chat, text=message, parse_mode="Markdown"))
-
-
-client = mqtt.Client()
-client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
-client.on_message = on_message
-client.connect(os.getenv("MQTTServer"), 1883, 60)
-client.subscribe("home/ESP32/Humidity/#")
-client.loop_start()
 
 # Function to handle the /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):

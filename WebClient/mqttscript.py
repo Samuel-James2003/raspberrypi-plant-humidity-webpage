@@ -3,6 +3,7 @@ import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 import os
 import json
+import telegramAlert
 
 app = Flask(__name__)
 
@@ -59,7 +60,8 @@ def on_message(client, userdata, message):
         payload = message.payload.decode()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         mac_address = message.topic.split("/")[-1]
-
+        if int(payload) > 900:
+            telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
         # Load the current log data
         with open(log_file, "r") as f:
             log_data = json.load(f)
