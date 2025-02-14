@@ -11,14 +11,16 @@ log_file = "log.json"
 
 def on_message(client, userdata, message):
     try:
+        with open("debug.txt", "a") as debugFile:
+            debugFile.write(f"message received: {message.payload.decode()}\n")
         # Decode the MQTT message payload
         payload = message.payload.decode()
         mac_address = message.topic.split("/")[-1]
         if int(payload) > 900:
             send_update(mac_address)
     except Exception as e:
-        with open("log.txt", "a") as log_file:
-            log_file.write(f"An error occurred on message: {e}\n")
+        with open("error.txt", "a") as error_file:
+            error_file.write(f"An error occurred on message: {e}\n")
 
 def send_update(mac_address):
     for chat in GetSubscribers():
