@@ -1,5 +1,6 @@
 from telegram import Update, Bot
 import asyncio
+import threading
 from telegram.ext import Application, CommandHandler, ContextTypes
 import paho.mqtt.client as mqtt
 import os
@@ -157,6 +158,9 @@ def get_status():
 
     return json.dumps(status_data, indent=4)
 
+def run_telegram_bot():
+    telegram_bot_application.run_polling()
+
 if __name__ == "__main__":
     client = mqtt.Client()
     client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"))
@@ -164,6 +168,12 @@ if __name__ == "__main__":
     client.connect(os.getenv("MQTTServer"), 1883, 60)
     client.subscribe("home/ESP32/Humidity/#")
     client.loop_start()
+    
+    def run_telegram_bot():
+        telegram_bot_application.run_polling()
+
+# Start Telegram bot in a separate thread
+    
     # Create the application with your bot's token
     telegram_bot_application = Application.builder().token(BOT_TOKEN).build()
 
@@ -175,5 +185,6 @@ if __name__ == "__main__":
     
     telegram_bot_application.add_handler(CommandHandler("stop", stop))
     
-    telegram_bot_application.run_polling()
+    telegram_thread = threading.Thread(target=run_telegram_bot, daemon=True)
+    telegram_thread.start()
 
