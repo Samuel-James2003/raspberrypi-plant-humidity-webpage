@@ -72,10 +72,10 @@ def on_message(client, userdata, message):
             
             # Prepare the log entry using the JSON data
             log_message = {
-                "payload": soil_humidity,  # storing the soil humidity
-                "temperature": temperature, 
-                "air_humidity": air_humidity,
-                "heat_index": heat_index,
+                "payload": str(soil_humidity),  # storing the soil humidity
+                "temperature": str(temperature), 
+                "air_humidity": str(air_humidity),
+                "heat_index": str(heat_index),
                 "timestamp": timestamp,
                 "batterylevel": ""
             }
