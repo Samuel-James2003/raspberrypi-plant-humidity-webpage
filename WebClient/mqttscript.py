@@ -81,8 +81,6 @@ def on_message(client, userdata, message):
             }
         except (json.JSONDecodeError, AttributeError):
             # If JSON decoding fails, assume it's the plain integer payload
-            if int(payload_str) > 900:
-                telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_message = {
                 "payload": payload_str,
@@ -92,7 +90,8 @@ def on_message(client, userdata, message):
                 "heat_index": "",
                 "batterylevel": ""
             }
-
+        if int(log_message.get("payload", 0)) > 900:
+            telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
         # Load the current log data
         with open(log_file, "r") as f:
             log_data = json.load(f)
