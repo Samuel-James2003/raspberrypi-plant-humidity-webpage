@@ -73,11 +73,11 @@ def on_message(client, userdata, message):
             # Prepare the log entry using the JSON data
             log_message = {
                 "payload": str(soil_humidity),  # storing the soil humidity
+                "timestamp": timestamp,
                 "temperature": str(temperature), 
                 "air_humidity": str(air_humidity),
                 "heat_index": str(heat_index),
-                "timestamp": timestamp,
-                "batterylevel": ""
+                "batterylevel": "0"
             }
         except (json.JSONDecodeError, AttributeError):
             # If JSON decoding fails, assume it's the plain integer payload
@@ -85,10 +85,10 @@ def on_message(client, userdata, message):
             log_message = {
                 "payload": payload_str,
                 "timestamp": timestamp,
-                "temperature": "", 
-                "air_humidity": "",
-                "heat_index": "",
-                "batterylevel": ""
+                "temperature": "0", 
+                "air_humidity": "0",
+                "heat_index": "0",
+                "batterylevel": "0"
             }
         if int(log_message.get("payload", 0)) > 900:
             telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
