@@ -7,8 +7,6 @@ import telegramAlert
 
 app = Flask(__name__)
 
-# MQTT status
-mqtt_status = {"topic": "Unknown", "status": "Unknown", "timestamp": "Unknown", "batterylevel": "Unknown"}
 log_file = "log.json"
 
 # Ensure log file exists
@@ -57,11 +55,44 @@ def get_device_details(mac_address):
 def on_message(client, userdata, message):
     try:
         # Decode the MQTT message payload
-        payload = message.payload.decode()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payload_str = message.payload.decode()
         mac_address = message.topic.split("/")[-1]
-        if int(payload) > 900:
-            telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
+
+        try:
+            # Attempt to parse the payload as JSON
+            data = json.loads(payload_str)
+            # If successful, extract details from the JSON
+            temperature = data.get("temperature")
+            air_humidity = data.get("air_humidity")
+            soil_humidity = data.get("soil_humidity")
+            message_timestamp = data.get("timestamp")
+            heat_index = data.get("heat_index")
+            # Use the provided timestamp, or fallback to current time if absent
+            timestamp = message_timestamp if message_timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Prepare the log entry using the JSON data
+            log_message = {
+                "payload": soil_humidity,  # storing the soil humidity
+                "temperature": temperature, 
+                "air_humidity": air_humidity,
+                "heat_index": heat_index,
+                "timestamp": timestamp,
+                "batterylevel": ""
+            }
+        except (json.JSONDecodeError, AttributeError):
+            # If JSON decoding fails, assume it's the plain integer payload
+            if int(payload_str) > 900:
+                telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_message = {
+                "payload": payload_str,
+                "timestamp": timestamp,
+                "temperature": "", 
+                "air_humidity": "",
+                "heat_index": "",
+                "batterylevel": ""
+            }
+
         # Load the current log data
         with open(log_file, "r") as f:
             log_data = json.load(f)
@@ -77,18 +108,15 @@ def on_message(client, userdata, message):
             log_data["responses"].append(response)
 
         # Add the new message to the response's messages list
-        response["messages"].append({
-            "payload": payload,
-            "timestamp": timestamp,
-            "batterylevel": ""
-        })
+        response["messages"].append(log_message)
 
         # Save the updated log data
         with open(log_file, "w") as f:
             json.dump(log_data, f, indent=4)
-    
+
     except Exception as e:
-        print(f"An error occurred on message: {e}")
+        print(e)
+
         
     finally:
         # Clean up old entries
@@ -101,6 +129,7 @@ client.username_pw_set(os.getenv("MQTTCREDENTIALS"), os.getenv("MQTTCREDENTIALS"
 client.on_message = on_message
 client.connect(os.getenv("MQTTServer"), 1883, 60)
 client.subscribe("home/ESP32/Humidity/#")
+client.subscribe("home/ESP32/Sensor/#")
 client.loop_start()
 
 @app.route("/")
