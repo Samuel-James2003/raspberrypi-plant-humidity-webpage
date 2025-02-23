@@ -1,11 +1,25 @@
 from telegram import Bot
 import os
 import asyncio
-def send_update(mac_address, BOT_TOKEN):
+import asyncio
+from telegram import Bot, ParseMode
+
+async def send_update_async(mac_address, BOT_TOKEN):
     for chat in GetSubscribers():
         bot = Bot(token=BOT_TOKEN)
-        alert_message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
-        asyncio.run(bot.send_message(chat_id=chat, text=alert_message, parse_mode="Markdown"))
+        alert_message = (
+            f"*Humidity Alert* 🌿\n\n"
+            f"💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\n"
+            "Please water me soon!"
+        )
+        # Await the coroutine returned by send_message
+        message = await bot.send_message(chat_id=chat, text=alert_message,  parse_mode="Markdown")
+        # Optionally, do something with 'message'
+        print(f"Message sent to chat {chat}: {message}")
+
+def send_update(mac_address, BOT_TOKEN):
+    # Run the asynchronous helper function
+    asyncio.run(send_update_async(mac_address, BOT_TOKEN))
 def GetSubscribers():
     return read_list_from_file("./subscribers.txt")
 def read_list_from_file(file_path: str):
