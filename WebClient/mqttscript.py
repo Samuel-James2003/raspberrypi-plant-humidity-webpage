@@ -57,14 +57,11 @@ def on_message(client, userdata, message):
     try:
         # Decode the MQTT message payload
         payload_str = message.payload.decode()
-        log_event(f"Decoded payload: {payload_str}")
         mac_address = message.topic.split("/")[-1]
-        log_event(f"Extracted MAC address: {mac_address}")
 
         try:
             # Attempt to parse the payload as JSON
             data = json.loads(payload_str)
-            log_event("JSON payload parsed successfully")
             # If successful, extract details from the JSON
             temperature = data.get("temperature")
             air_humidity = data.get("air_humidity")
@@ -84,7 +81,6 @@ def on_message(client, userdata, message):
                 "batterylevel": "0"
             }
         except (json.JSONDecodeError, AttributeError) as e:
-            log_event(f"JSON decoding failed: {e}", level="ERROR", exc_info=True)
             # If JSON decoding fails, assume it's the plain integer payload
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_message = {
@@ -96,7 +92,6 @@ def on_message(client, userdata, message):
                 "batterylevel": "0"
             }
         if int(log_message.get("payload", 0)) > 900:
-            log_event(f"Alert: High soil humidity detected for MAC address: {mac_address}")
             telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
         # Load the current log data
         with open(log_file, "r") as f:
@@ -111,18 +106,14 @@ def on_message(client, userdata, message):
                 "messages": []
             }
             log_data["responses"].append(response)
-            log_event(f"create a new response entry for MAC address: {mac_address}")
         
         # Add the new message to the response's messages list
         response["messages"].append(log_message)
-        log_event(f"add a {log_message} to the response entry for MAC address: {mac_address}")
         # Save the updated log data
         with open(log_file, "w") as f:
             json.dump(log_data, f, indent=4)
 
     except Exception as e:
-        print(e)
-        # Log the error and continue processing the next message
         log_event(f"An error occurred: {e}", level="ERROR", exc_info=True)
         
     finally:
