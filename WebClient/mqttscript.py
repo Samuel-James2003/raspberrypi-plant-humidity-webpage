@@ -95,8 +95,9 @@ def on_message(client, userdata, message):
                 "heat_index": "0",
                 "batterylevel": "0"
             }
-        # if int(log_message.get("payload", 0)) > 900:
-        #     telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
+        if int(log_message.get("payload", 0)) > 900:
+            log_event(f"Alert: High soil humidity detected for MAC address: {mac_address}")
+            telegramAlert.send_update(mac_address, os.getenv('BOT_TOKEN'))
         # Load the current log data
         with open(log_file, "r") as f:
             log_data = json.load(f)
