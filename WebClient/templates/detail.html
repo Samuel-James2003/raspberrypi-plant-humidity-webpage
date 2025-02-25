@@ -195,6 +195,9 @@
       const temperatureValues = data.map((entry) => {
         return parseFloat(entry.temperature);
       });
+      const heatindexValues = data.map((entry) => {
+        return parseFloat(entry.heat_index);
+      });
 
 
       // Estimate time to reach 50%
@@ -280,45 +283,60 @@
         },
       });
 
-      // Configure the chart for temperature
-      const tempCtx = document.getElementById("tempretureChart").getContext("2d");
-      new Chart(tempCtx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [
-        {
-          label: "Temperature (°C)",
-          data: temperatureValues, // Assuming you have temperature values in the same format
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "rgba(255, 99, 132, 0.2)",
-          fill: true,
-        },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: {
-        legend: {
-          position: "top",
-        },
+      // Check if all temperature values are 0
+      const allZero = temperatureValues.every((value) => value === 0);
+
+      if (!allZero) {
+        // Configure the chart for temperature and heat index
+        const tempCtx = document.getElementById("tempretureChart").getContext("2d");
+        new Chart(tempCtx, {
+          type: "line",
+          data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Temperature (°C)",
+            data: temperatureValues,
+            borderColor: "rgba(255, 99, 132, 1)",
+            backgroundColor: "rgba(255, 99, 132, 0.2)",
+            fill: true,
           },
-          scales: {
-        x: {
-          title: {
-            display: true,
-            text: "Time",
+          {
+            label: "Heat Index (°C)",
+            data: heatindexValues,
+            borderColor: "rgba(54, 162, 235, 1)",
+            backgroundColor: "rgba(54, 162, 235, 0.2)",
+            fill: true,
           },
-        },
-        y: {
-          title: {
-            display: true,
-            text: "Temperature (°C)",
+        ],
+          },
+          options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "top",
           },
         },
+        scales: {
+          x: {
+            title: {
+          display: true,
+          text: "Time",
+            },
+          },
+          y: {
+            title: {
+          display: true,
+          text: "Temperature (°C)",
+            },
           },
         },
-      });
+          },
+        });
+      } else {
+        document.getElementById("tempretureChart").style.display = "none";
+      }
+      
       document
         .getElementById("confirm-delete")
         .addEventListener("show.bs.modal", function (e) {
