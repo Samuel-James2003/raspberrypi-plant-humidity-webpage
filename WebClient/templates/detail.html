@@ -25,6 +25,14 @@
         style="position: absolute; top: 10px; left: 10px; font-size: 20px"
         ><i class="bi bi-arrow-left"></i
       ></a>
+      <button
+      id="toggleUnitButton"
+      class="btn btn-secondary"
+      style="position: absolute; top: 10px; right: 10px; font-size: 20px"
+      onclick="toggleUnit()"
+    >
+      Toggle Unit
+    </button>
     </div>
     <div class="container py-5" id="status-container">
       <h1 class="text-center mb-4">
@@ -156,6 +164,14 @@
 
     <script>
       const TOTAL_RANGE = 3100 - 1220;
+
+        // Utility function to get a cookie's value by name
+        function getCookie(name) {
+        const value = "; " + document.cookie;
+        const parts = value.split("; " + name + "=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+      }
+
       async function postNewName() {
         const new_name = document.getElementById("familiar_name").value;
         const macAddress = "{{ mac_address }}";
@@ -172,6 +188,28 @@
           alert("Failed to update name");
         }
       }
+
+      function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+          const date = new Date();
+          date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+          expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+      }
+      // Function to toggle the temperature unit
+      function toggleUnit() {
+        const currentUnit = getCookie("unit");
+        // Toggle between "F" and "C" (default is Celsius if cookie not set)
+        if (currentUnit && currentUnit === "F") {
+          setCookie("unit", "C", 30);
+        } else {
+          setCookie("unit", "F", 30);
+        }
+        window.location.reload();
+      }
+
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
       // Extract labels from the data
@@ -191,14 +229,27 @@
         return Math.min(Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0), 100);
       });
       
+      const unit = getCookie("unit");
       // Calculate temperature values as Celsius
-      const temperatureValues = data.map((entry) => {
+      let temperatureValues = data.map((entry) => {
         return parseFloat(entry.temperature);
       });
-      const heatindexValues = data.map((entry) => {
+      let heatindexValues = data.map((entry) => {
         return parseFloat(entry.heat_index);
       });
 
+      let tempLabel = "Temperature (°C)";
+      let heatIndexLabel = "Heat Index (°C)";
+      let yAxisTitle = "Temperature (°C)";
+      // Check cookie to see if we should convert to Fahrenheit
+      if (unit && unit === "F") {
+        // Convert each temperature and heat index value from Celsius to Fahrenheit
+        temperatureValues = temperatureValues.map(c => (c * 9/5 + 32).toFixed(2));
+        heatindexValues = heatindexValues.map(c => (c * 9/5 + 32).toFixed(2));
+        tempLabel = "Temperature (°F)";
+        heatIndexLabel = "Heat Index (°F)";
+        yAxisTitle = "Temperature (°F)";
+      }
 
       // Estimate time to reach 50%
 
@@ -285,52 +336,51 @@
 
       // Check if all temperature values are 0
       const allZero = temperatureValues.every((value) => value === 0);
-
       if (!allZero) {
         // Configure the chart for temperature and heat index
         const tempCtx = document.getElementById("tempretureChart").getContext("2d");
         new Chart(tempCtx, {
           type: "line",
           data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Temperature (°C)",
-            data: temperatureValues,
-            borderColor: "rgba(255, 99, 132, 1)",
-            backgroundColor: "rgba(255, 99, 132, 0.2)",
-            fill: true,
-          },
-          {
-            label: "Heat Index (°C)",
-            data: heatindexValues,
-            borderColor: "rgba(54, 162, 235, 1)",
-            backgroundColor: "rgba(54, 162, 235, 0.2)",
-            fill: true,
-          },
-        ],
+            labels: labels,
+            datasets: [
+              {
+                label: tempLabel,
+                data: temperatureValues,
+                borderColor: "rgba(255, 99, 132, 1)",
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                fill: true,
+              },
+              {
+                label: heatIndexLabel,
+                data: heatindexValues,
+                borderColor: "rgba(54, 162, 235, 1)",
+                backgroundColor: "rgba(54, 162, 235, 0.2)",
+                fill: true,
+              },
+            ],
           },
           options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: "top",
-          },
-        },
-        scales: {
-          x: {
-            title: {
-          display: true,
-          text: "Time",
+            responsive: true,
+            plugins: {
+              legend: {
+                position: "top",
+              },
             },
-          },
-          y: {
-            title: {
-          display: true,
-          text: "Temperature (°C)",
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Time",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: yAxisTitle,
+                },
+              },
             },
-          },
-        },
           },
         });
       } else {
