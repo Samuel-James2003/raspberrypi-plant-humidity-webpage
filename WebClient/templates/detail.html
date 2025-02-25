@@ -35,6 +35,10 @@
         id="humidityChart"
         style="max-width: 100%; max-height: 300pt"
       ></canvas>
+      <canvas
+        id="tempretureChart"
+        style="max-width: 100%; max-height: 300pt"
+      ></canvas>
       <div id="delete-button">
         <a
           class="btn btn-danger"
@@ -170,6 +174,7 @@
       }
       // Parse data passed from the server
       const data = JSON.parse('{{ data|tojson|safe }}');
+      // Extract labels from the data
       const labels = data.map((entry) => {
         const date = new Date(entry.timestamp);
         return date.toLocaleTimeString([], {
@@ -179,27 +184,34 @@
           minute: "2-digit",
         });
       });
-
+      
       // Calculate humidity values as percentages
-      const values = data.map((entry) => {
+      const humidityValues = data.map((entry) => {
         const rawValue = Math.max(parseInt(entry.payload), 0);
         return Math.min(Math.max(100 - (rawValue / TOTAL_RANGE) * 100, 0), 100);
       });
+      
+      // Calculate temperature values as Celsius
+      const temperatureValues = data.map((entry) => {
+        return parseFloat(entry.temperature);
+      });
+
+
       // Estimate time to reach 50%
 
-      const lastIndex = values.length - 1;
+      const lastIndex = humidityValues.length - 1;
       let firstIndex = 0; // Start with default first index
 
       // Find the last occurrence of 100% (watering event)
       for (let i = lastIndex; i >= 0; i--) {
-        if (values[i] === 100) {
+        if (humidityValues[i] === 100) {
           firstIndex = i;
           break;
         }
       }
 
-      const lastValue = values[lastIndex];
-      const firstValue = values[firstIndex];
+      const lastValue = humidityValues[lastIndex];
+      const firstValue = humidityValues[firstIndex];
       const lastTime = new Date(data[lastIndex].timestamp);
       const firstTime = new Date(data[firstIndex].timestamp);
 
@@ -237,7 +249,7 @@
           datasets: [
             {
               label: "Humidity (%)",
-              data: values,
+              data: humidityValues,
               borderColor: "rgba(75, 192, 192, 1)",
               backgroundColor: "rgba(75, 192, 192, 0.2)",
               fill: true,
@@ -264,6 +276,46 @@
                 text: "Humidity (%)",
               },
             },
+          },
+        },
+      });
+
+      // Configure the chart for temperature
+      const tempCtx = document.getElementById("tempretureChart").getContext("2d");
+      new Chart(tempCtx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+        {
+          label: "Temperature (°C)",
+          data: temperatureValues, // Assuming you have temperature values in the same format
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "rgba(255, 99, 132, 0.2)",
+          fill: true,
+        },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+        legend: {
+          position: "top",
+        },
+          },
+          scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Temperature (°C)",
+          },
+        },
           },
         },
       });
