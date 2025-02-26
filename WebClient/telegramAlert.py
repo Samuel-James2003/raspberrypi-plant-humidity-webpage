@@ -1,10 +1,14 @@
 from telegram import Bot
 import os
+from debug import log_event
 def send_update(mac_address, BOT_TOKEN):
-    for chat in GetSubscribers():
-        bot = Bot(token=BOT_TOKEN)
-        alert_message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
-        bot.send_message(chat_id=chat, text=alert_message, parse_mode="Markdown")
+    try:
+        for chat in GetSubscribers():
+            bot = Bot(token=BOT_TOKEN)
+            alert_message = f"*Humidity Alert* 🌿\n\n💧The device at *MAC Address:* `{mac_address}` is below 50% soil humidity\nPlease water me soon!"
+            bot.send_message(chat_id=chat, text=alert_message, parse_mode="Markdown")
+    except Exception as e:
+         log_event(f"An error occurred: {e}", level="ERROR", exc_info=True)
 def GetSubscribers():
     return read_list_from_file("./subscribers.txt")
 def read_list_from_file(file_path: str):
